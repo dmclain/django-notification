@@ -10,8 +10,8 @@ except ImportError:
 
 from django.conf import settings
 from django.core.mail import mail_admins
-from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.db import models
 
 from lockfile import FileLock, AlreadyLocked, LockTimeout
 
@@ -21,11 +21,12 @@ from notification import models as notification
 # lock timeout value. how long to wait for the lock to become available.
 # default behavior is to never wait for the lock to be available.
 LOCK_WAIT_TIMEOUT = getattr(settings, "NOTIFICATION_LOCK_WAIT_TIMEOUT", -1)
+USER_MODEL = getattr(settings, 'AUTH_USER_MODEL', 'auth.User')
 
 
 def send_all():
     lock = FileLock("send_notices")
-    
+
     logging.debug("acquiring lock...")
     try:
         lock.acquire(LOCK_WAIT_TIMEOUT)
@@ -36,10 +37,11 @@ def send_all():
         logging.debug("waiting for the lock timed out. quitting.")
         return
     logging.debug("acquired.")
-    
+
     batches, sent = 0, 0
     start_time = time.time()
-    
+
+    UserModel = models.get_model(*USER_MODEL.rsplit('.', 1))
     try:
         # nesting the try statement to be Python 2.4
         try:
@@ -47,12 +49,12 @@ def send_all():
                 notices = pickle.loads(str(queued_batch.pickled_data).decode("base64"))
                 for user, label, extra_context, on_site, sender in notices:
                     try:
-                        user = User.objects.get(pk=user)
+                        user = UserModel.objects.get(pk=user)
                         logging.info("emitting notice %s to %s" % (label, user))
                         # call this once per user to be atomic and allow for logging to
                         # accurately show how long each takes.
                         notification.send_now([user], label, extra_context, on_site, sender)
-                    except User.DoesNotExist:
+                    except UserModel.DoesNotExist:
                         # Ignore deleted users, just warn about them
                         logging.warning("not emitting notice %s to user %s since it does not exist" % (label, user))
                     sent += 1
@@ -72,7 +74,7 @@ def send_all():
         logging.debug("releasing lock...")
         lock.release()
         logging.debug("released.")
-    
+
     logging.info("")
     logging.info("%s batches, %s sent" % (batches, sent,))
     logging.info("done in %.2f seconds" % (time.time() - start_time))
