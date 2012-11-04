@@ -8,12 +8,8 @@ except ImportError:
 from django.db import models
 from django.db.models.query import QuerySet
 from django.conf import settings
-<<<<<<< HEAD
 from django.core.exceptions import ImproperlyConfigured
-from django.core.mail import send_mail
-=======
 from django.core.mail import send_mail, EmailMultiAlternatives
->>>>>>> 1dc8472... Add support for HTML emails using EmailMultiAlternatives.
 from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import render_to_string
