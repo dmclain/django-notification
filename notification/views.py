@@ -1,13 +1,10 @@
-from django.core.urlresolvers import reverse
 from django.shortcuts import render_to_response, get_object_or_404
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect, Http404, HttpResponse
 from django.template import RequestContext
 
 from django.contrib.auth.decorators import login_required
 
 from notification.models import *
-from notification.decorators import basic_auth_required, simple_basic_auth_callback
-from notification.feeds import NoticeUserFeed
 
 
 @login_required
@@ -177,4 +174,4 @@ def mark_all_seen(request):
     """
 
     Notice.objects.notices_for(request.user, unseen=True).update(unseen=False)
-    return HttpResponseRedirect(reverse("notification_notices"))
+    return HttpResponse('{"success": true }')
